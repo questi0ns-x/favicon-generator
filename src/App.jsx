@@ -85,13 +85,6 @@ export default function App() {
     return bgColor
   }, [bgType, bgColor])
 
-  useEffect(() => {
-    if (!image) return
-    const bg = getBg()
-    SIZES.forEach(sz => { const c = canvasRefs.current[sz]; if (c) drawToCanvas(c, image, fit, bg) })
-    if (browserRef.current) drawToCanvas(browserRef.current, image, fit, bg)
-  }, [image, fit, getBg])
-
   const handleFile = useCallback((file) => {
     if (!file || !file.type.startsWith('image/')) return
     const reader = new FileReader()
@@ -102,6 +95,30 @@ export default function App() {
     }
     reader.readAsDataURL(file)
   }, [])
+
+  useEffect(() => {
+    if (!image) return
+    const bg = getBg()
+    SIZES.forEach(sz => { const c = canvasRefs.current[sz]; if (c) drawToCanvas(c, image, fit, bg) })
+    if (browserRef.current) drawToCanvas(browserRef.current, image, fit, bg)
+  }, [image, fit, getBg])
+
+  // Handle paste from clipboard (Ctrl+V)
+  useEffect(() => {
+    const handlePaste = (e) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith('image/')) {
+          const file = items[i].getAsFile()
+          if (file) handleFile(file)
+          break
+        }
+      }
+    }
+    document.addEventListener('paste', handlePaste)
+    return () => document.removeEventListener('paste', handlePaste)
+  }, [handleFile])
 
   const download = async () => {
     setStatus('generating...')
